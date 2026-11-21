@@ -1,0 +1,10 @@
+{
+  "admin": { "login": "admin", "password": "" },
+  "codebuddy": { "apiKey": "", "environment": "ioa" },
+  "agentCli": { "dsh": "", "cursor": "", "kimi": "", "zcode": "" },
+  "githubToken": "",
+  "sharedCodeBuddy": { "apiKey": "", "environment": "internal" },
+  "projects": [
+    { "id": "testforge", "name": "TestForge", "repository": "https://github.com/Robert0622/TestForge" }
+  ]
+}

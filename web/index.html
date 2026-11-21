@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LoopForge 环境管理</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="vendor/xterm.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section id="login" class="login" hidden>
+    <form class="login-card" id="login-form">
+      <img src="logo.svg" alt="" class="login-logo">
+      <h1>LoopForge 环境管理</h1>
+      <p class="mute">输入访问令牌登录</p>
+      <input id="login-token" type="password" placeholder="访问令牌" autocomplete="current-password" required>
+      <button class="btn primary" type="submit">登录</button>
+      <p class="form-error" id="login-error"></p>
+    </form>
+  </section>
+
+  <div id="app" hidden>
+    <header class="top">
+      <a class="brand" href="/"><img src="logo.svg" alt=""><span>LoopForge</span><em>环境</em></a>
+      <div class="top-right">
+        <span class="queue-pill" id="queue-pill"></span>
+        <a class="chip" id="repo-link" target="_blank" rel="noopener">GitHub</a>
+        <button class="chip" id="logout" type="button">退出</button>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="hero">
+        <p class="eyebrow"><i></i>BRANCH ENVIRONMENTS</p>
+        <h1>按分支启动 <span class="grad">LoopForge 测试环境</span></h1>
+        <p class="lead">输入 <code id="repo-name">tencent/LoopForge</code> 的分支、PR（含 fork 提交的 PR）、标签或提交，排队构建镜像并启动一套独立的平台、数据库与沙箱。再次构建会更新到最新提交。</p>
+      </div>
+
+      <form class="create card" id="create-form">
+        <div class="field">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v12M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm12-12a9 9 0 0 1-9 9"/></svg>
+          <input id="branch" placeholder="分支、PR、标签或提交，例如 main、#478、v0.4.0、a917e04" autocomplete="off" spellcheck="false" required
+            role="combobox" aria-expanded="false" aria-controls="branch-menu" aria-autocomplete="list">
+          <div class="combo" id="branch-menu" role="listbox" hidden></div>
+        </div>
+        <button class="btn primary" type="submit">构建环境 <span aria-hidden="true">→</span></button>
+      </form>
+      <p class="form-error" id="create-error"></p>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>环境</h2>
+          <span class="mute" id="env-count"></span>
+          <span class="spacer"></span>
+          <button class="seed-note" id="seed-note" type="button" title="编辑初始化脚本" hidden></button>
+        </div>
+        <table class="table fixed">
+          <colgroup><col><col style="width:150px"><col style="width:128px"><col style="width:204px"><col style="width:92px"><col style="width:272px"></colgroup>
+          <thead><tr><th>分支</th><th>状态</th><th>提交</th><th>访问地址</th><th>更新</th><th class="right">操作</th></tr></thead>
+          <tbody id="env-rows"></tbody>
+        </table>
+        <div class="empty" id="env-empty" hidden>还没有环境，输入分支开始构建。</div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>构建队列</h2>
+          <span class="mute" id="job-count"></span>
+        </div>
+        <table class="table fixed">
+          <colgroup><col><col style="width:180px"><col style="width:128px"><col style="width:92px"><col style="width:100px"><col style="width:120px"></colgroup>
+          <thead><tr><th>任务</th><th>状态</th><th>提交</th><th>耗时</th><th>创建</th><th class="right">操作</th></tr></thead>
+          <tbody id="job-rows"></tbody>
+        </table>
+        <div class="empty" id="job-empty" hidden>暂无任务。</div>
+      </section>
+    </main>
+
+    <div class="scrim" id="scrim" hidden></div>
+    <aside class="drawer" id="drawer" aria-hidden="true">
+      <div class="drawer-head">
+        <div>
+          <div class="drawer-title" id="drawer-title"></div>
+          <div class="mute small" id="drawer-sub"></div>
+        </div>
+        <button class="icon-btn" id="drawer-close" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div class="drawer-bar">
+        <div class="tabs">
+          <button type="button" data-tab="build" class="active">构建日志</button>
+          <button type="button" data-tab="runtime">运行日志</button>
+          <button type="button" data-tab="terminal">终端</button>
+        </div>
+        <select id="job-select"></select>
+        <select id="ct-select" hidden></select>
+        <span class="spacer"></span>
+        <label class="follow" id="follow-wrap"><input type="checkbox" id="follow" checked> 跟随</label>
+        <a class="chip" id="raw-log" target="_blank" rel="noopener">原始日志</a>
+        <span class="term-state" id="term-state" hidden></span>
+        <button class="chip" id="ct-connect" type="button" hidden>重新连接</button>
+      </div>
+      <pre class="log" id="log"></pre>
+      <div class="term" id="term" hidden></div>
+    </aside>
+
+    <div class="modal-scrim" id="editor" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title" id="editor-title">初始化脚本</div>
+            <div class="mute small">环境第一次启动成功后执行一次，重建不执行。保存后对之后首次启动的环境生效。</div>
+          </div>
+          <button class="icon-btn" id="editor-close" type="button" aria-label="关闭">✕</button>
+        </div>
+        <div class="drawer-bar">
+          <div class="tabs" id="editor-tabs"></div>
+          <code class="editor-path" id="editor-path"></code>
+          <span class="spacer"></span>
+          <span class="editor-status" id="editor-status"></span>
+          <button class="chip" id="editor-revert" type="button">还原</button>
+          <button class="btn primary sm" id="editor-save" type="button">保存</button>
+        </div>
+        <p class="editor-error" id="editor-error" hidden></p>
+        <textarea class="editor" id="editor-text" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="vendor/xterm.js"></script>
+  <script src="vendor/addon-fit.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
