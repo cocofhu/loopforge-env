@@ -92,7 +92,7 @@ function refLabel(ref) {
   if (commitSha(ref)) return `提交 ${commitSha(ref).slice(0, 10)}`;
   return ref;
 }
-const PR_STATE = { open: ['ok', '打开'], closed: ['err', '已关闭'], merged: ['run', '已合并'] };
+const PR_STATE = { closed: ['err', '已关闭'], merged: ['run', '已合并'] };
 
 function refCell(ref, pr, slug, subject) {
   if (tagName(ref) || commitSha(ref)) {
@@ -100,9 +100,9 @@ function refCell(ref, pr, slug, subject) {
     return `<span class="branch-name">${badge}</span>${subject ? `<span class="pr-title" title="${esc(subject)}">${esc(subject)}</span>` : ''}<span class="sub">${esc(slug)}</span>`;
   }
   if (!prNum(ref)) return `<span class="branch-name" title="${esc(ref)}">${esc(ref)}</span><span class="sub">${esc(slug)}</span>`;
-  const [cls, label] = pr ? PR_STATE[pr.state] || ['', pr.state] : [];
+  const [cls, label] = !pr ? [] : pr.state === 'open' ? (pr.draft ? ['', '草稿'] : []) : PR_STATE[pr.state] || ['', pr.state];
   const title = pr ? `<a class="pr-title" href="${esc(pr.url)}" title="${esc(pr.title)}" target="_blank" rel="noopener">${esc(pr.title)}</a>` : '';
-  return `<span class="branch-name"><span class="pr-badge">PR #${prNum(ref)}</span>${pr ? `<span class="pr-state ${cls}">${pr.draft && pr.state === 'open' ? '草稿' : label}</span>` : ''}</span>${title}`
+  return `<span class="branch-name"><span class="pr-badge">PR #${prNum(ref)}</span>${label ? `<span class="pr-state ${cls}">${label}</span>` : ''}</span>${title}`
     + `<span class="sub" title="${pr ? esc(pr.head) : ''}">${pr ? esc(pr.head) + ' · ' : ''}${esc(slug)}</span>`;
 }
 
