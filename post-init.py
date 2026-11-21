@@ -103,7 +103,16 @@ def save_model_keys(c, uid, cfg):
 def save_github_token(c, uid, token):
     path = f"/api/users/{uid}/git-http-credentials"
     update = {"name": "GitHub", "platform": "github", "host": "github.com", "token": token}
-    for cred in c.call("GET", path) or []:
+    try:
+        existing = c.call("GET", path) or []
+    except APIError as e:
+        if e.status not in (404, 405):
+            raise
+        # Versions before per-host credentials (v0.4.0 and older) keep one Git token per user.
+        c.call("PUT", f"/api/users/{uid}/credentials", {"gitToken": token})
+        log("saved GitHub token (single per-user Git token)")
+        return
+    for cred in existing:
         # Updating by ID keeps one credential for the host.
         if cred.get("host") == "github.com" and not cred.get("managed"):
             update.update(id=cred["id"], name=cred["name"], platform=cred["platform"], username=cred.get("username", ""))
