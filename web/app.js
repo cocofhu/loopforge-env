@@ -97,7 +97,12 @@ const PR_STATE = { closed: ['err', '已关闭'], merged: ['run', '已合并'] };
 function refCell(ref, pr, slug, subject) {
   if (tagName(ref) || commitSha(ref)) {
     const badge = tagName(ref) ? `<span class="pr-badge tag-badge">TAG</span>${esc(tagName(ref))}` : `<span class="pr-badge commit-badge">COMMIT</span>${esc(commitSha(ref).slice(0, 10))}`;
-    return `<span class="branch-name">${badge}</span>${subject ? `<span class="pr-title" title="${esc(subject)}">${esc(subject)}</span>` : ''}<span class="sub">${esc(slug)}</span>`;
+    const repo = /^https:\/\/github\.com\//.test(state.repo || '') ? state.repo.replace(/(\.git)?\/?$/, '') : '';
+    const href = repo && (tagName(ref) ? `${repo}/releases/tag/${encodeURIComponent(tagName(ref))}` : `${repo}/commit/${commitSha(ref)}`);
+    const title = !subject ? '' : href
+      ? `<a class="pr-title" href="${esc(href)}" title="${esc(subject)}" target="_blank" rel="noopener">${esc(subject)}</a>`
+      : `<span class="pr-title" title="${esc(subject)}">${esc(subject)}</span>`;
+    return `<span class="branch-name">${badge}</span>${title}<span class="sub">${esc(slug)}</span>`;
   }
   if (!prNum(ref)) return `<span class="branch-name" title="${esc(ref)}">${esc(ref)}</span><span class="sub">${esc(slug)}</span>`;
   const [cls, label] = !pr ? [] : pr.state === 'open' ? (pr.draft ? ['', '草稿'] : []) : PR_STATE[pr.state] || ['', pr.state];
