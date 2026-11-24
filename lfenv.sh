@@ -130,6 +130,7 @@ cmd_up() {
 services:
   platform:
     image: $tag
+    privileged: true
     environment:
       AGENTFLOW_ISOLATED_IMAGE: $tag
 EOF
@@ -139,6 +140,8 @@ EOF
   LOOPFORGE_COMMIT="$commit" compose_in "$src" build platform
   step 'Starting'
   compose_in "$src" up -d --no-build --wait --wait-timeout 300
+  step 'Installing bwrap'
+  install_platform_bwrap "$src"
   (cd "$src" && bash scripts/install-schema-extensions.sh >/dev/null)
   printf '%s\n' "$commit" >"$dir/deployed"
 
@@ -149,6 +152,13 @@ EOF
   fi
   touch "$dir/initialized"
   printf '\n✓ %s @ %s ready: http://%s:%s\n' "$branch" "${commit:0:12}" "$(hostname -I 2>/dev/null | awk '{print $1}')" "$port"
+}
+
+# Control-plane container only. Privileged is set in compose.lfenv.yaml; bwrap
+# is installed into the running platform container and skipped when already present.
+install_platform_bwrap() {
+  compose_in "$1" exec -T platform sh -lc 'command -v bwrap >/dev/null 2>&1 || (apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bubblewrap)' \
+    || fail "install bwrap in platform container failed"
 }
 
 # Runs after every successful start, rebuilds included, so it must be safe to
